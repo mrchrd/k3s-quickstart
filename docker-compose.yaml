@@ -1,0 +1,19 @@
+---
+version: '3'
+services:
+  server:
+    image: docker.io/rancher/k3s:v0.6.1
+    command: server --no-deploy traefik
+    environment:
+      - K3S_KUBECONFIG_MODE=644
+      - K3S_KUBECONFIG_OUTPUT=/output/kubeconfig.yaml
+    ports:
+      - 6443:6443
+      - 8080:31380
+    privileged: true
+    tmpfs:
+      - /run
+      - /var/run
+    volumes:
+      - .:/output
+      - /run/udev:/run/udev:ro
