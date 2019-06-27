@@ -9,31 +9,32 @@ until kubectl get nodes; do sleep 1; done
 until kubectl get deployment -n kube-system coredns -o json | jq -er 'select(.status.readyReplicas > 0) | .metadata.name'; do sleep 1; done
 echo
 
-echo "# Setup OpenEBS"
-kubectl apply -f openebs-1.0.0/k8s/openebs-operator.yaml
-until kubectl get deployment -n openebs openebs-provisioner -o json | jq -er 'select(.status.readyReplicas > 0) | .metadata.name'; do sleep 1; done
-kubectl patch storageclass openebs-hostpath -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+echo "# Setup Helm"
+kubectl apply -f manifests/helm.yaml
+until kubectl get deployment -n kube-system tiller-deploy -o json | jq -er 'select(.status.readyReplicas > 0) | .metadata.name'; do sleep 1; done
+helm repo update
 echo
 
 echo "# Setup Metrics Server"
-for i in metrics-server-0.3.3/deploy/1.8+/*yaml; do
-  kubectl apply -f $i
-done
-until kubectl get deployment -n kube-system metrics-server -o json | jq -er 'select(.status.readyReplicas > 0) | .metadata.name'; do sleep 1; done
+helm upgrade --install --namespace=kube-system metrics-server stable/metrics-server --version=2.8.2 --values=helm/metrics-server-0.3.3.yaml --wait
+echo
+
+echo "# Setup OpenEBS"
+helm upgrade --install --namespace=openebs openebs stable/openebs --version=1.0.0 --values=helm/openebs-1.0.0.yaml --wait
+kubectl patch storageclass openebs-hostpath -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
 echo
 
 echo "# Setup Istio"
-for i in istio-1.2.0/install/kubernetes/helm/istio-init/files/crd*yaml; do
-  kubectl apply -f $i
-done
-kubectl apply -f istio-1.2.0/install/kubernetes/istio-demo-auth.yaml
-until kubectl get deployment -n istio-system istio-sidecar-injector -o json | jq -er 'select(.status.readyReplicas > 0) | .metadata.name'; do sleep 1; done
+helm repo add istio.io https://storage.googleapis.com/istio-release/releases/1.2.0/charts/
+helm upgrade --install --namespace=istio-system istio-init istio.io/istio-init --version=1.2.0 --values=helm/istio-init-1.2.0.yaml --wait
+until kubectl get crd -o name | grep -q istio.io; do sleep 2; done
+helm upgrade --install --namespace=istio-system istio istio.io/istio --version=1.2.0 --values=helm/istio-1.2.0.yaml --wait --timeout 600
 echo
 
-echo "# Test Nginx"
-kubectl apply -f test/nginx.yaml
+echo "# Setup NGINX"
+kubectl apply -f manifests/nginx.yaml
 until kubectl get deployment -n test nginx -o json | jq -er 'select(.status.readyReplicas > 0) | .metadata.name'; do sleep 1; done
-kubectl cp test/index.html `kubectl get pod -n test -l app=nginx -o name | sed 's/^pod/test/;'`:/usr/share/nginx/html/index.htm -c nginx
+kubectl cp assets/index.html `kubectl get pod -n test -l app=nginx -o name | sed 's/^pod/test/;'`:/usr/share/nginx/html/index.htm -c nginx
 echo
 
 curl -H "Host: nginx.test" http://localhost:8080/
