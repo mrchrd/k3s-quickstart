@@ -25,10 +25,10 @@ kubectl patch storageclass openebs-hostpath -p '{"metadata": {"annotations":{"st
 echo
 
 echo "# Setup Istio"
-helm repo add istio.io https://storage.googleapis.com/istio-release/releases/1.2.0/charts/
-helm upgrade --install --namespace=istio-system istio-init istio.io/istio-init --version=1.2.0 --values=helm/istio-init-1.2.0.yaml --wait
+helm repo add istio.io https://storage.googleapis.com/istio-release/releases/1.2.1/charts/
+helm upgrade --install --namespace=istio-system istio-init istio.io/istio-init --version=1.2.1 --values=helm/istio-init-1.2.1.yaml --wait
 until kubectl get crd -o name | grep -q istio.io; do sleep 2; done
-helm upgrade --install --namespace=istio-system istio istio.io/istio --version=1.2.0 --values=helm/istio-1.2.0.yaml --wait --timeout 600
+helm upgrade --install --namespace=istio-system istio istio.io/istio --version=1.2.1 --values=helm/istio-1.2.1.yaml --wait --timeout 600
 echo
 
 echo "# Setup NGINX"
