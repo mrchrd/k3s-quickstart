@@ -16,6 +16,8 @@ gateways:
 
   istio-ingressgateway:
     enabled: true
+    sds:
+      enabled: true
     resources:
       requests:
         cpu: 10m

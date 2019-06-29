@@ -10,6 +10,7 @@ services:
     ports:
       - 6443:6443
       - 8080:31380
+      - 8443:31390
     privileged: true
     tmpfs:
       - /run

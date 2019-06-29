@@ -37,4 +37,5 @@ until kubectl get deployment -n test nginx -o json | jq -er 'select(.status.read
 kubectl cp assets/index.html `kubectl get pod -n test -l app=nginx -o name | sed 's/^pod/test/;'`:/usr/share/nginx/html/index.htm -c nginx
 echo
 
-curl -H "Host: nginx.test" http://localhost:8080/
+curl http://nginx.test --connect-to nginx.test:80:localhost:8080 -I
+curl https://nginx.test --connect-to nginx.test:443:localhost:8443 -k
