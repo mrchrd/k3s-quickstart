@@ -9,8 +9,9 @@ services:
       - K3S_KUBECONFIG_OUTPUT=/output/kubeconfig.yaml
     ports:
       - 6443:6443
-      - 8080:31380
-      - 8443:31390
+      - 22:31370
+      - 80:31380
+      - 443:31390
     privileged: true
     tmpfs:
       - /run
