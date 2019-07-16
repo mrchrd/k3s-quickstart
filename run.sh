@@ -1,7 +1,6 @@
 #!/bin/sh
 set -e
 
-export KUBECONFIG="${PWD}/kubeconfig.yaml"
 EXEC='docker exec -i k3squickstart_server_1 sh -c'
 
 START_TIME=`date "+%s"`
@@ -12,27 +11,25 @@ ${EXEC} 'until kubectl get nodes; do sleep 1; done'
 ${EXEC} 'until [ `echo $(kubectl get deployment -n kube-system coredns -o jsonpath='{.status.readyReplicas}' --ignore-not-found) | sed 's/^$/0/'` -gt 0 ]; do sleep 1; done'
 echo
 
-echo "### Setup Helm"
-${EXEC} 'kubectl apply -f-' < manifests/helm.yaml
-${EXEC} 'until [ `echo $(kubectl get deployment -n kube-system tiller-deploy -o jsonpath='{.status.readyReplicas}' --ignore-not-found) | sed 's/^$/0/'` -gt 0 ]; do sleep 1; done'
-helm repo update
-echo
-
 echo "### Setup Metrics Server"
-helm upgrade --install --namespace=kube-system metrics-server stable/metrics-server --version=2.8.2 --values=helm/metrics-server-0.3.3.yaml --wait
+${EXEC} 'kubectl apply -f-' < manifests/metrics-server.yaml
 echo
 
 echo "### Setup OpenEBS"
-helm upgrade --install --namespace=openebs openebs stable/openebs --version=1.0.0 --values=helm/openebs-1.0.0.yaml --wait
+${EXEC} 'kubectl apply -f-' < manifests/openebs.yaml
+${EXEC} 'until kubectl get crd storagepools.openebs.io -o name; do sleep 1; done'
 ${EXEC} "kubectl patch storageclass openebs-hostpath -p '{\"metadata\": {\"annotations\":{\"storageclass.kubernetes.io/is-default-class\":\"true\"}}}'"
 echo
 
 echo "### Setup Istio"
-helm repo add istio.io https://storage.googleapis.com/istio-release/releases/1.2.1/charts/
-helm upgrade --install --namespace=istio-system istio-init istio.io/istio-init --version=1.2.1 --values=helm/istio-init-1.2.1.yaml --wait
+${EXEC} 'kubectl apply -f-' < manifests/istio-init.yaml
 ${EXEC} 'until kubectl get crd rbacconfigs.rbac.istio.io -o name; do sleep 1; done'
-helm upgrade --install --namespace=istio-system istio istio.io/istio --version=1.2.1 --values=helm/istio-1.2.1.yaml --wait --timeout 600
+${EXEC} 'kubectl apply -f-' < manifests/istio.yaml
+${EXEC} 'until kubectl get crd rbacconfigs.rbac.istio.io -o name; do sleep 1; done'
 ${EXEC} 'kubectl apply -f-' < manifests/cert-manager-issuers.yaml
+${EXEC} 'until [ `echo $(kubectl get deployment -n istio-system istio-pilot -o jsonpath='{.status.readyReplicas}' --ignore-not-found) | sed 's/^$/0/'` -gt 0 ]; do sleep 1; done'
+${EXEC} 'until [ `echo $(kubectl get deployment -n istio-system istio-policy -o jsonpath='{.status.readyReplicas}' --ignore-not-found) | sed 's/^$/0/'` -gt 0 ]; do sleep 1; done'
+${EXEC} 'until [ `echo $(kubectl get deployment -n istio-system istio-sidecar-injector -o jsonpath='{.status.readyReplicas}' --ignore-not-found) | sed 's/^$/0/'` -gt 0 ]; do sleep 1; done'
 echo
 
 echo "### Setup NGINX"

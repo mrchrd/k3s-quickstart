@@ -5,7 +5,6 @@ Ensure that you have following requirements installed on your system:
 * curl (optional)
 * docker
 * docker-compose
-* helm
 
 Then run the script:
 ```
