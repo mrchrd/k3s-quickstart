@@ -1,7 +1,8 @@
 #!/bin/sh
 set -e
+set -x
 
-EXEC='docker exec -i k3squickstart_server_1 sh -c'
+EXEC='docker exec -i k3squickstart_server_1 sh -c -x'
 
 START_TIME=`date "+%s"`
 
@@ -17,7 +18,7 @@ echo
 
 echo "### Setup OpenEBS"
 ${EXEC} 'kubectl apply -f-' < manifests/openebs.yaml
-${EXEC} 'until kubectl get crd storagepools.openebs.io -o name; do sleep 1; done'
+${EXEC} 'until kubectl get storageclass openebs-hostpath -o name; do sleep 1; done'
 ${EXEC} "kubectl patch storageclass openebs-hostpath -p '{\"metadata\": {\"annotations\":{\"storageclass.kubernetes.io/is-default-class\":\"true\"}}}'"
 echo
 
