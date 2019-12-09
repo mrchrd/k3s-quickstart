@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-EXEC='docker exec -i k3squickstart_server_1 sh -c'
+EXEC='docker exec -i k3s-quickstart_server_1 sh -c'
 
 START_TIME=`date "+%s"`
 
